@@ -1,0 +1,61 @@
+version: '3.9'
+
+services:
+  database:
+    image: postgres:17.0
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      server-fc:
+        aliases:
+          - "database"
+
+  server-fc:
+    image: server-fc/server-fc
+    restart: unless-stopped
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    environment:
+      APP_PORT: ${APP_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      TZ: Europe/Ulyanovsk
+
+    networks:
+      server-fc:
+        aliases:
+          - "server-fc"
+
+  client-fc:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    command: npm run dev -- --host
+
+    networks:
+      server-fc:
+        aliases:
+          - "client-fc"
+
+networks:
+  server-fc:
+    driver: bridge
+
+volumes:
+  postgres_data:
